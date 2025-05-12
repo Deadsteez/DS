@@ -147,29 +147,76 @@ void levelOrder(struct node* root) {
 
 void mirror(struct node* root) {
     if (root == NULL) return;
-    struct node* temp = root->left;
-    root->left = root->right;
-    root->right = temp;
-    mirror(root->left);
-    mirror(root->right);
+
+    struct stack* s = NULL;
+    push(root);
+
+    while (!isEmpty()) {
+        struct node* current = pop();
+
+        struct node* temp = current->left;
+        current->left = current->right;
+        current->right = temp;
+
+        if (current->left) push(current->left);
+        if (current->right) push(current->right);
+    }
 }
+
 
 int countNodes(struct node* root) {
+    int count = 0;
     if (root == NULL) return 0;
-    return 1 + countNodes(root->left) + countNodes(root->right);
+
+    push(root);
+    while (!isEmpty()) {
+        struct node* curr = pop();
+        count++;
+        if (curr->right) push(curr->right);
+        if (curr->left) push(curr->left);
+    }
+    return count;
 }
 
+
 int countLeafNodes(struct node* root) {
+    int count = 0;
     if (root == NULL) return 0;
-    if (root->left == NULL && root->right == NULL) return 1;
-    return countLeafNodes(root->left) + countLeafNodes(root->right);
+
+    push(root);
+    while (!isEmpty()) {
+        struct node* curr = pop();
+        if (curr->left == NULL && curr->right == NULL)
+            count++;
+        if (curr->right) push(curr->right);
+        if (curr->left) push(curr->left);
+    }
+    return count;
 }
+
 
 int height(struct node* root) {
     if (root == NULL) return 0;
-    int leftHeight = height(root->left);
-    int rightHeight = height(root->right);
-    return (leftHeight > rightHeight ? leftHeight : rightHeight) + 1;
+
+    struct node* queue[100];
+    int front = 0, rear = 0;
+    int height = 0;
+    queue[rear++] = root;
+
+    while (front < rear) {
+        int nodeCount = rear - front;
+        height++;
+
+        while (nodeCount > 0) {
+            struct node* temp = queue[front++];
+            if (temp->left)
+                queue[rear++] = temp->left;
+            if (temp->right)
+                queue[rear++] = temp->right;
+            nodeCount--;
+        }
+    }
+    return height;
 }
 
 struct node* findMin(struct node* root) {
@@ -203,9 +250,64 @@ struct node* deleteNode(struct node* root, int key) {
     return root;
 }
 
+// New function to find a value in the BST
+struct node* find(struct node* root, int value) {
+    if (root == NULL) {
+        return NULL;
+    }
+    
+    while (root != NULL) {
+        if (value == root->data) {
+            return root;  // Found the value
+        } else if (value < root->data) {
+            root = root->left;  // Search in left subtree
+        } else {
+            root = root->right;  // Search in right subtree
+        }
+    }
+    
+    return NULL;  // Value not found
+}
+
+// Helper function for show() to print the tree structure
+void printLevel(struct node* root, int level, int space) {
+    if (root == NULL) {
+        return;
+    }
+    
+    // Increase distance between levels
+    space += 10;
+    
+    // Process right child first
+    printLevel(root->right, level + 1, space);
+    
+    // Print current node
+    printf("\n");
+    for (int i = 10; i < space; i++) {
+        printf(" ");
+    }
+    printf("%d\n", root->data);
+    
+    // Process left child
+    printLevel(root->left, level + 1, space);
+}
+
+// New function to display the tree structure
+void show(struct node* root) {
+    if (root == NULL) {
+        printf("Empty tree\n");
+        return;
+    }
+    
+    // Start with initial space 0
+    printLevel(root, 0, 0);
+    printf("\n");
+}
+
 int main() {
     struct node* root = NULL;
     int choice, val;
+    struct node* result; // Declare variables at the top
 
     while (1) {
         printf("\nBinary Search Tree Operations:\n");
@@ -219,7 +321,9 @@ int main() {
         printf("8. Count Leaf Nodes\n");
         printf("9. Display Height\n");
         printf("10. Mirror Image\n");
-        printf("11. Exit\n");
+        printf("11. Find Value\n");
+        printf("12. Show Tree Structure\n");
+        printf("13. Exit\n");
         printf("Enter choice: ");
         scanf("%d", &choice);
 
@@ -264,6 +368,20 @@ int main() {
                 printf("Tree mirrored successfully!\n");
                 break;
             case 11:
+                printf("Enter value to find: ");
+                scanf("%d", &val);
+                result = find(root, val);
+                if (result != NULL) {
+                    printf("Value %d found in the tree!\n", val);
+                } else {
+                    printf("Value %d not found in the tree.\n", val);
+                }
+                break;
+            case 12:
+                printf("Tree Structure:\n");
+                show(root);
+                break;
+            case 13:
                 exit(0);
             default:
                 printf("Invalid Choice!\n");

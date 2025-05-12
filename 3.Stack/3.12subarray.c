@@ -1,131 +1,117 @@
 #include <stdio.h>
-#include <stdlib.h>
 
-#define MAX 100
+#define MAX_STACK_SIZE 5  // Define the maximum size for a stack
 
-int arr[MAX];
-int *top, *base, *limit;
+// Global variables for multiple stacks
+int stacks[10][MAX_STACK_SIZE]; // A 2D array to represent 10 stacks (change 10 as needed)
+int stack_tops[10]; // Array to track the top index for each stack
 
-int n, m, size;
-
-void initializeStacks(int totalSize, int numStacks) {
-    n = totalSize;
-    m = numStacks;
-    size = n / m;
-
-    top = (int*)malloc(m * sizeof(int));
-    base = (int*)malloc(m * sizeof(int));
-    limit = (int*)malloc(m * sizeof(int));
-
+// Function to initialize the stacks
+void initStacks(int m) {
     for (int i = 0; i < m; i++) {
-        base[i] = i * size;
-        top[i] = base[i] - 1; // top starts before base
-        limit[i] = (i == m - 1) ? n - 1 : base[i + 1] - 1; // allow last stack to extend to end
+        stack_tops[i] = -1; // Initialize each stack to be empty
     }
 }
 
-int isFull(int stackNum) {
-    if (top[stackNum] < limit[stackNum]) return 0;
-
-    // Try to borrow space from next stack
-    if (stackNum < m - 1 && top[stackNum + 1] < limit[stackNum + 1]) {
-        limit[stackNum]++;
-        base[stackNum + 1]++;
-        return 0;
+void push(int value, int stack_num) {
+    if (stack_tops[stack_num] < MAX_STACK_SIZE - 1) {
+        stacks[stack_num][++stack_tops[stack_num]] = value;
+        printf("Pushed %d into Stack %d\n", value, stack_num + 1);  // Print after each push
+    } else {
+        printf("Stack %d is full! Moving to the next stack...\n", stack_num + 1);
+        // Move to the next stack if current one is full
+        if (stack_num + 1 < 10) {
+            push(value, stack_num + 1);  // Call push recursively for next stack
+        } else {
+            printf("Out of space! No more stacks available.\n");
+        }
     }
-
-    return 1;
 }
 
-int isEmpty(int stackNum) {
-    return top[stackNum] < base[stackNum];
+int pop(int stack_num) {
+    if (stack_tops[stack_num] == -1) {
+        printf("Stack %d is empty!\n", stack_num + 1);
+        return -1; 
+    } else {
+        int value = stacks[stack_num][stack_tops[stack_num]--];
+        printf("Popped %d from Stack %d\n", value, stack_num + 1);
+        return value;
+    }
 }
 
-void push(int stackNum, int val) {
-    if (isFull(stackNum)) {
-        printf("Stack %d is full and cannot borrow space.\n", stackNum);
-        return;
+// Display all stacks
+void displayStacks(int m) {
+    printf("\nCurrent Stack Contents:\n");
+    for (int i = 0; i < m; i++) {
+        printf("Stack %d: ", i + 1);
+        if (stack_tops[i] == -1) {
+            printf("Empty\n");
+        } else {
+            for (int j = 0; j <= stack_tops[i]; j++) {
+                printf("%d ", stacks[i][j]);
+            }
+            printf("\n");
+        }
     }
-
-    top[stackNum]++;
-    arr[top[stackNum]] = val;
-}
-
-int pop(int stackNum) {
-    if (isEmpty(stackNum)) {
-        printf("Stack %d is empty.\n", stackNum);
-        return -1;
-    }
-
-    int val = arr[top[stackNum]];
-    top[stackNum]--;
-    return val;
-}
-
-void display(int stackNum) {
-    if (isEmpty(stackNum)) {
-        printf("Stack %d is empty.\n", stackNum);
-        return;
-    }
-
-    printf("Stack %d: ", stackNum);
-    for (int i = base[stackNum]; i <= top[stackNum]; i++) {
-        printf("%d ", arr[i]);
-    }
-    printf("\n");
 }
 
 int main() {
-    int totalSize, numStacks;
-    printf("Enter total array size: ");
-    scanf("%d", &totalSize);
+    int n, m;
 
-    do {
-        printf("Enter number of stacks (between 3 and %d): ", totalSize - 1);
-        scanf("%d", &numStacks);
-    } while (numStacks <= 2 || numStacks >= totalSize);
+    printf("Enter the number of elements (n): ");
+    scanf("%d", &n);
 
-    initializeStacks(totalSize, numStacks);
+    printf("Enter the number of subarrays (m): ");
+    scanf("%d", &m);
 
-    int choice, stackNum, val;
-    do {
-        printf("\n1. Push\n2. Pop\n3. Display Stack\n0. Exit\nEnter your choice: ");
+    initStacks(m);
+
+    int value;
+    int current_stack = 0;
+    int choice;
+
+    for (int i = 0; i < n; i++) {
+        printf("\nChoose an operation:\n");
+        printf("1. Push\n");
+        printf("2. Pop\n");
+        printf("3. Display Stacks\n");
+        printf("4. Exit\n");
+        printf("Enter your choice: ");
         scanf("%d", &choice);
 
-        switch (choice) {
-        case 1:
-            printf("Enter stack number (0 to %d): ", numStacks - 1);
-            scanf("%d", &stackNum);
+        if (choice == 1) {
             printf("Enter value to push: ");
-            scanf("%d", &val);
-            push(stackNum, val);
-            break;
+            scanf("%d", &value);
 
-        case 2:
-            printf("Enter stack number (0 to %d): ", numStacks - 1);
-            scanf("%d", &stackNum);
-            val = pop(stackNum);
-            if (val != -1) printf("Popped: %d\n", val);
-            break;
+            push(value, current_stack);
 
-        case 3:
-            for (int i = 0; i < numStacks; i++) {
-                display(i);
+            if (stack_tops[current_stack] == MAX_STACK_SIZE - 1) {
+                current_stack++;
+                if (current_stack >= m) {
+                    printf("Out of space! No more stacks available.\n");
+                    break;
+                }
             }
-            break;
+        } else if (choice == 2) {
 
-        case 0:
-            printf("Exiting...\n");
-            break;
+            printf("Enter stack number to pop from (1 to %d): ", m);
+            int stack_num;
+            scanf("%d", &stack_num);
 
-        default:
-            printf("Invalid choice.\n");
+            if (stack_num < 1 || stack_num > m) {
+                printf("Invalid stack number. Try again.\n");
+            } else {
+                pop(stack_num - 1);
+            }
+        } else if (choice == 3) {
+            displayStacks(m);
+        } else if (choice == 4) {
+            printf("Exiting the program.\n");
+            break;
+        } else {
+            printf("Invalid choice. Try again.\n");
         }
+    }
 
-    } while (choice != 0);
-
-    free(top);
-    free(base);
-    free(limit);
     return 0;
 }
